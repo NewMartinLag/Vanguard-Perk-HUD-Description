@@ -1,0 +1,325 @@
+// ============================================================
+//  Vanguard Perk Animation - con descripciones en español
+//  Original por techboy04gaming
+//  Descripcion de las bebidas y sus nombres agregadas: NewMartinLag
+// ============================================================
+
+#include maps\mp\_utility;
+#include common_scripts\utility;
+#include maps\mp\gametypes_zm\_hud_util;
+#include maps\mp\gametypes_zm\_hud_message;
+#include maps\mp\zombies\_zm_perks;
+
+init()
+{
+    iprintln("^4Vanguard Perk Animation ^7created by ^1techboy04gaming");
+    level thread onPlayerConnect();
+}
+
+// ============================================================
+//  CONEXION Y SPAWN DE JUGADORES
+// ============================================================
+
+onPlayerConnect()
+{
+    for(;;)
+    {
+        level waittill("connected", player);
+        player thread onPlayerSpawned();
+        player thread end_game();
+    }
+}
+
+end_game()
+{
+    self endon("disconnect");
+    level waittill("game_ended");
+}
+
+onPlayerSpawned()
+{
+    self endon("disconnect");
+    for(;;)
+    {
+        self waittill("spawned_player");
+        self.perkhud      = undefined;
+        self.perkdesc_hud = undefined;
+        self.perkspec_hud = undefined;
+        self thread listen_for_perks();
+    }
+}
+
+// ============================================================
+//  ESCUCHA DEL EVENTO NATIVO perk_acquired
+//  (se dispara DESPUES de que el perk ya fue entregado de verdad,
+//  asi no interferimos con la logica original de give_perk)
+// ============================================================
+
+listen_for_perks()
+{
+    self endon("disconnect");
+    self endon("spawned_player");
+
+    for(;;)
+    {
+        self waittill("perk_acquired");
+
+        // El notify "perk_acquired" no trae parametro (asi lo dispara
+        // el juego original). El perk recien comprado queda guardado
+        // como el ultimo elemento de self.perks_active justo antes
+        // de que se dispare el notify, asi que lo leemos de ahi.
+        if (!isdefined(self.perks_active) || self.perks_active.size == 0)
+            continue;
+
+        perk = self.perks_active[self.perks_active.size - 1];
+        self thread perk_bought(perk);
+    }
+}
+
+// ============================================================
+//  ANIMACION HUD AL COMPRAR PERK
+// ============================================================
+
+perk_bought(perk)
+{
+    self endon("disconnect");
+    self endon("game_ended");
+
+    shader = getperkshader(perk);
+    if (shader == "")
+        return;
+
+    // Destruir HUD previo si el jugador compra otro perk rapido
+    if (isDefined(self.perkhud))
+    {
+        self.perkhud destroy();
+        self.perkhud = undefined;
+    }
+    if (isDefined(self.perkname_hud))
+    {
+        self.perkname_hud destroy();
+        self.perkname_hud = undefined;
+    }
+    if (isDefined(self.perkdesc_hud))
+    {
+        self.perkdesc_hud destroy();
+        self.perkdesc_hud = undefined;
+    }
+    if (isDefined(self.perkspec_hud))
+    {
+        self.perkspec_hud destroy();
+        self.perkspec_hud = undefined;
+    }
+
+    // --- Icono del perk ---
+    hud = NewClientHudElem( self );
+    hud.alignx         = "center";
+    hud.aligny         = "middle";
+    hud.horzalign      = "user_center";
+    hud.vertalign      = "user_top";
+    hud.x              = 0;
+    hud.y              = 55;
+    hud.alpha          = 0;
+    hud.color          = (1, 1, 1);
+    hud.hidewheninmenu = 1;
+    hud.foreground     = 1;
+    hud setshader(shader, 64, 64);
+
+    // --- Nombre de la bebida (linea 1, blanca, mas grande) ---
+    name_hud = NewClientHudElem( self );
+    name_hud.alignx         = "center";
+    name_hud.aligny         = "middle";
+    name_hud.horzalign      = "user_center";
+    name_hud.vertalign      = "user_top";
+    name_hud.x              = 0;
+    name_hud.y              = 122;
+    name_hud.fontscale      = 1.6;
+    name_hud.alpha          = 0;
+    name_hud.color          = (1, 1, 1);
+    name_hud.hidewheninmenu = 1;
+    name_hud.foreground     = 1;
+    name_hud settext(getPerkName(perk));
+
+    // --- Descripcion principal (linea 2, blanca) ---
+    desc_hud = NewClientHudElem( self );
+    desc_hud.alignx         = "center";
+    desc_hud.aligny         = "middle";
+    desc_hud.horzalign      = "user_center";
+    desc_hud.vertalign      = "user_top";
+    desc_hud.x              = 0;
+    desc_hud.y              = 147;
+    desc_hud.fontscale      = 1.3;
+    desc_hud.alpha          = 0;
+    desc_hud.color          = (1, 1, 1);
+    desc_hud.hidewheninmenu = 1;
+    desc_hud.foreground     = 1;
+    desc_hud settext(getPerkDesc(perk));
+
+    // --- Habilidad especial (linea 3, color dorado) ---
+    spec_hud = NewClientHudElem( self );
+    spec_hud.alignx         = "center";
+    spec_hud.aligny         = "middle";
+    spec_hud.horzalign      = "user_center";
+    spec_hud.vertalign      = "user_top";
+    spec_hud.x              = 0;
+    spec_hud.y              = 167;
+    spec_hud.fontscale      = 1.1;
+    spec_hud.alpha          = 0;
+    spec_hud.color          = (0.9, 0.85, 0.4);
+    spec_hud.hidewheninmenu = 1;
+    spec_hud.foreground     = 1;
+
+    self.perkhud      = hud;
+    self.perkname_hud = name_hud;
+    self.perkdesc_hud = desc_hud;
+    self.perkspec_hud = spec_hud;
+
+    // ---- Fade IN ----
+    hud scaleovertime(0.4, 64, 64);
+    hud fadeovertime(0.4);
+    hud.alpha = 1;
+
+    name_hud fadeovertime(0.4);
+    name_hud.alpha = 1;
+
+    desc_hud fadeovertime(0.4);
+    desc_hud.alpha = 1;
+
+    wait(3.5);
+
+    // ---- Fade OUT ----
+    hud fadeovertime(0.5);
+    hud.alpha = 0;
+
+    name_hud fadeovertime(0.5);
+    name_hud.alpha = 0;
+
+    desc_hud fadeovertime(0.5);
+    desc_hud.alpha = 0;
+
+    spec_hud fadeovertime(0.5);
+    spec_hud.alpha = 0;
+
+    wait(0.55);
+
+    hud destroy();
+    name_hud destroy();
+    desc_hud destroy();
+    spec_hud destroy();
+
+    self.perkhud      = undefined;
+    self.perkname_hud = undefined;
+    self.perkdesc_hud = undefined;
+    self.perkspec_hud = undefined;
+}
+
+// ============================================================
+//  SHADER DE CADA PERK  
+// ============================================================
+
+getperkshader(perk)
+{
+    switch(perk)
+    {
+        case "specialty_armorvest":
+            return "specialty_juggernaut_zombies";
+        case "specialty_quickrevive":
+            return "specialty_quickrevive_zombies";
+        case "specialty_fastreload":
+            return "specialty_fastreload_zombies";
+        case "specialty_rof":
+            return "specialty_doubletap_zombies";
+        case "specialty_longersprint":
+            return "specialty_marathon_zombies";
+        case "specialty_flakjacket":
+            return "specialty_divetonuke_zombies";
+        case "specialty_deadshot":
+            return "specialty_ads_zombies";
+        case "specialty_additionalprimaryweapon":
+            return "specialty_additionalprimaryweapon_zombies";
+        case "specialty_scavenger":
+            return "specialty_tombstone_zombies";
+        case "specialty_finalstand":
+            return "specialty_chugabud_zombies";
+        case "specialty_nomotionsensor":
+            return "specialty_vulture_zombies";
+        case "specialty_grenadepulldeath":
+            return "specialty_electric_cherry_zombie";
+        default:
+            return "";
+    }
+}
+
+// ============================================================
+//  NOMBRE DE CADA BEBIDA  
+// ============================================================
+
+getPerkName(perk)
+{
+    switch(perk)
+    {
+        case "specialty_armorvest":
+            return "Jugger-Nog";
+        case "specialty_fastreload":
+            return "Speed Cola";
+        case "specialty_quickrevive":
+            return "Quick Revive";
+        case "specialty_rof":
+            return "Double Tap 2.0";
+        case "specialty_longersprint":
+            return "Stamin-Up";
+        case "specialty_additionalprimaryweapon":
+            return "Mule Kick";
+        case "specialty_deadshot":
+            return "Deadshot Daiquiri";
+        case "specialty_flakjacket":
+            return "PhD Flopper";
+        case "specialty_scavenger":
+            return "Tombstone (La Tumba)";
+        case "specialty_finalstand":
+            return "Who's Who (Quien Es Quien)";
+        case "specialty_nomotionsensor":
+            return "Vulture Aid Elixir (Buitre)";
+        case "specialty_grenadepulldeath":
+            return "Electric Cherry";
+        default:
+            return "";
+    }
+}
+
+// ============================================================
+//  DESCRIPCION PRINCIPAL DE CADA PERK 
+// ============================================================
+
+getPerkDesc(perk)
+{
+    switch(perk)
+    {
+        case "specialty_armorvest":
+            return "Aumenta Tu Salud De 100 a 250";
+        case "specialty_fastreload":
+            return "Recargas Las Armas Mas Rapido";
+        case "specialty_quickrevive":
+            return "En Solitario Te Revive Solo. En Cooperativo Reanimas A Tus Aliados Mas Rapido";
+        case "specialty_rof":
+            return "Duplica La Cadencia De Disparo Y Aumenta El Daño";
+        case "specialty_longersprint":
+            return "Corres Mas Rapido";
+        case "specialty_additionalprimaryweapon":
+            return "Permite Llevar 3 Armas En Vez De 2";
+        case "specialty_deadshot":
+            return "Mejora La Punteria Automatica A La Cabeza Y Reduce El Retroceso";
+        case "specialty_flakjacket":
+            return "Inmune Al Daño Explosivo. Crea Explosiones Al Lanzarte Al Suelo";
+        case "specialty_scavenger":
+            return "Al Morir Dejas Una Lapida Con Tus Armas Y Perks | Solo Cooperativo";
+        case "specialty_finalstand":
+            return "Genera Un Clon Para Revivirte A Ti Mismo, Espera ¿Porque Lo Compraste?";
+        case "specialty_nomotionsensor":
+            return "Muestra Iconos De Municion Y Dinero. Crea Nubes Verdes Que Te Ocultan De Los Zombies";
+        case "specialty_grenadepulldeath":
+            return "Descarga Electrica Al Recargar Que Daña A Los Zombies Cercanos";
+        default:
+            return "";
+    }
+}
