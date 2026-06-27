@@ -1,7 +1,7 @@
 // ============================================================
-//  Vanguard Perk Animation - con descripciones en español
-//  Original por techboy04gaming
-//  Descripcion de las bebidas y sus nombres agregadas: NewMartinLag
+//  Vanguard Perk Animation 
+//  Original by techboy04gaming
+//  Description of the drinks and their names added by: NewMartinLag
 // ============================================================
 
 #include maps\mp\_utility;
@@ -17,7 +17,7 @@ init()
 }
 
 // ============================================================
-//  CONEXION Y SPAWN DE JUGADORES
+//  PLAYER CONNECTION AND SPAWNING
 // ============================================================
 
 onPlayerConnect()
@@ -50,9 +50,9 @@ onPlayerSpawned()
 }
 
 // ============================================================
-//  ESCUCHA DEL EVENTO NATIVO perk_acquired
-//  (se dispara DESPUES de que el perk ya fue entregado de verdad,
-//  asi no interferimos con la logica original de give_perk)
+//  LISTEN FOR THE NATIVE EVENT perk_acquired
+//  (fires AFTER the perk has actually been awarded,
+//  so we don't interfere with the original logic of give_perk)
 // ============================================================
 
 listen_for_perks()
@@ -64,10 +64,10 @@ listen_for_perks()
     {
         self waittill("perk_acquired");
 
-        // El notify "perk_acquired" no trae parametro (asi lo dispara
-        // el juego original). El perk recien comprado queda guardado
-        // como el ultimo elemento de self.perks_active justo antes
-        // de que se dispare el notify, asi que lo leemos de ahi.
+        // The “perk_acquired” notify does not have any parameters (that's how
+        // the original game triggers it). The newly purchased perk is stored
+        // as the last element of self.perks_active right before
+        // the notify is triggered, so we read it from there.
         if (!isdefined(self.perks_active) || self.perks_active.size == 0)
             continue;
 
@@ -77,7 +77,7 @@ listen_for_perks()
 }
 
 // ============================================================
-//  ANIMACION HUD AL COMPRAR PERK
+//  HUD ANIMATION WHEN PURCHASING A PERK
 // ============================================================
 
 perk_bought(perk)
@@ -89,7 +89,7 @@ perk_bought(perk)
     if (shader == "")
         return;
 
-    // Destruir HUD previo si el jugador compra otro perk rapido
+    // Destroy the previous HUD if the player quickly purchases another perk
     if (isDefined(self.perkhud))
     {
         self.perkhud destroy();
@@ -111,7 +111,7 @@ perk_bought(perk)
         self.perkspec_hud = undefined;
     }
 
-    // --- Icono del perk ---
+    // --- Perk icon ---
     hud = NewClientHudElem( self );
     hud.alignx         = "center";
     hud.aligny         = "middle";
@@ -125,7 +125,7 @@ perk_bought(perk)
     hud.foreground     = 1;
     hud setshader(shader, 64, 64);
 
-    // --- Nombre de la bebida (linea 1, blanca, mas grande) ---
+    // --- Drink name (line 1, white, larger) ---
     name_hud = NewClientHudElem( self );
     name_hud.alignx         = "center";
     name_hud.aligny         = "middle";
@@ -140,7 +140,7 @@ perk_bought(perk)
     name_hud.foreground     = 1;
     name_hud settext(getPerkName(perk));
 
-    // --- Descripcion principal (linea 2, blanca) ---
+    // --- Main description (line 2, blank) ---
     desc_hud = NewClientHudElem( self );
     desc_hud.alignx         = "center";
     desc_hud.aligny         = "middle";
@@ -214,7 +214,7 @@ perk_bought(perk)
 }
 
 // ============================================================
-//  SHADER DE CADA PERK  
+//  SHADER FOR EACH PERK  
 // ============================================================
 
 getperkshader(perk)
@@ -251,7 +251,7 @@ getperkshader(perk)
 }
 
 // ============================================================
-//  NOMBRE DE CADA BEBIDA  
+//  NAME OF EACH DRINK  
 // ============================================================
 
 getPerkName(perk)
@@ -288,7 +288,7 @@ getPerkName(perk)
 }
 
 // ============================================================
-//  DESCRIPCION PRINCIPAL DE CADA PERK 
+//  MAIN DESCRIPTION OF EACH PERK 
 // ============================================================
 
 getPerkDesc(perk)
